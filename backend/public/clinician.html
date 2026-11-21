@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luweero Health Centre OPD - Clinician Adherence Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --primary-color: #0284c7;
+      --secondary-color: #0f172a;
+      --success-color: #16a34a;
+      --warning-color: #f59e0b;
+      --danger-color: #dc2626;
+      --bg-color: #f8fafc;
+    }
+    body {
+      background-color: var(--bg-color);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    .navbar {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .stat-card {
+      border: none;
+      border-radius: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .badge-pill-status {
+      font-size: 0.85rem;
+      padding: 0.35em 0.65em;
+    }
+    .table thead th {
+      background-color: #f1f5f9;
+      color: #475569;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark px-4 py-3">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="#">
+        <i class="bi bi-hospital fs-3"></i>
+        <div>
+          <div>Luweero Health Centre</div>
+          <small class="fw-normal text-light opacity-75" style="font-size: 0.75rem;">Outpatient Department (OPD) • MedRemind Clinician Portal</small>
+        </div>
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <span id="clinicianInfo" class="text-white d-none">
+          <i class="bi bi-person-badge me-1"></i> <strong id="clinicianName">Dr. Clinician</strong>
+        </span>
+        <button id="authBtn" class="btn btn-outline-light btn-sm" onclick="toggleAuthModal()">
+          <i class="bi bi-box-arrow-in-right"></i> Clinician Sign In
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-4 py-4">
+
+    <!-- Auth Alert if not signed in -->
+    <div id="loginPrompt" class="alert alert-info d-flex align-items-center justify-content-between mb-4 shadow-sm" role="alert">
+      <div>
+        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+        <strong>Clinician Access Notice:</strong> Sign in with clinician credentials to monitor chronic disease outpatients, view adherence records, and prescribe regimens.
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="toggleAuthModal()">Sign In Now</button>
+    </div>
+
+    <!-- OPD Dashboard Summary Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stat-card shadow-sm p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small">Registered Outpatients</div>
+              <h2 id="statPatients" class="fw-bold mb-0 text-primary">--</h2>
+            </div>
+            <div class="bg-primary-subtle text-primary p-3 rounded-circle">
+              <i class="bi bi-people fs-4"></i>
+            </div>
+          </div>
+          <small class="text-muted mt-2 d-block">Luweero OPD cohort</small>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stat-card shadow-sm p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small">Average Adherence</div>
+              <h2 id="statAdherence" class="fw-bold mb-0 text-success">--%</h2>
+            </div>
+            <div class="bg-success-subtle text-success p-3 rounded-circle">
+              <i class="bi bi-check2-circle fs-4"></i>
+            </div>
+          </div>
+          <small class="text-muted mt-2 d-block">Overall dose compliance</small>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stat-card shadow-sm p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small">Low Pill Stock (&le; 5)</div>
+              <h2 id="statLowStock" class="fw-bold mb-0 text-warning">--</h2>
+            </div>
+            <div class="bg-warning-subtle text-warning p-3 rounded-circle">
+              <i class="bi bi-capsule fs-4"></i>
+            </div>
+          </div>
+          <small class="text-muted mt-2 d-block">Require refill follow-up</small>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stat-card shadow-sm p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small">Active Prescriptions</div>
+              <h2 id="statMeds" class="fw-bold mb-0 text-info">--</h2>
+            </div>
+            <div class="bg-info-subtle text-info p-3 rounded-circle">
+              <i class="bi bi-prescription fs-4"></i>
+            </div>
+          </div>
+          <small class="text-muted mt-2 d-block">Monitored treatment plans</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Outpatients Directory -->
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white py-3">
+        <div class="row g-2 align-items-center">
+          <div class="col-md-4">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-clipboard2-pulse text-primary me-2"></i>Outpatients Adherence Register</h5>
+          </div>
+          <div class="col-md-4">
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+              <input type="text" id="searchInput" class="form-control" placeholder="Search by name, phone or OPD number..." onkeyup="filterPatients()">
+            </div>
+          </div>
+          <div class="col-md-4 d-flex justify-content-md-end gap-2">
+            <select id="diseaseFilter" class="form-select form-select-sm w-auto" onchange="filterPatients()">
+              <option value="">All Chronic Clinics</option>
+              <option value="HIV/AIDS">HIV/AIDS (ART)</option>
+              <option value="Hypertension">Hypertension</option>
+              <option value="Tuberculosis">Tuberculosis (TB)</option>
+              <option value="Diabetes">Diabetes</option>
+              <option value="General Outpatient">General Outpatient</option>
+            </select>
+            <button class="btn btn-outline-primary btn-sm" onclick="loadDashboard()">
+              <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Patient Full Name</th>
+              <th>Clinic ID / OPD No.</th>
+              <th>Phone Number</th>
+              <th>Clinic Category</th>
+              <th>Active Regimens</th>
+              <th>Refill / Stock</th>
+              <th>Adherence Rate</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="patientsTableBody">
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                <i class="bi bi-hourglass-split me-1"></i> Please sign in as a clinician to load outpatients records.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Clinician Auth Modal -->
+  <div class="modal fade" id="authModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title"><i class="bi bi-shield-lock me-2"></i>Clinician Portal Login</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div id="authError" class="alert alert-danger d-none"></div>
+          <form id="loginForm" onsubmit="handleClinicianLogin(event)">
+            <div class="mb-3">
+              <label class="form-label">Phone Number</label>
+              <input type="text" id="loginPhone" class="form-control" placeholder="0771234567" required>
+              <small class="text-muted">Registered clinician phone number</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Password</label>
+              <input type="password" id="loginPassword" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Clinician Dashboard
+            </button>
+          </form>
+          <hr>
+          <div class="small text-muted text-center">
+            Staff accounts must be provisioned by an administrator.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Patient Details & Prescription Modal -->
+  <div class="modal fade" id="patientModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-light">
+          <div>
+            <h5 class="modal-title fw-bold" id="modalPatientName">Patient Name</h5>
+            <small class="text-muted" id="modalPatientSub">OPD Details</small>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- Patient Summary Pills -->
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <div class="p-2 border rounded bg-light">
+                <small class="text-muted d-block">Phone Number</small>
+                <strong id="modalPhone">--</strong>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="p-2 border rounded bg-light">
+                <small class="text-muted d-block">Clinic Department</small>
+                <strong id="modalCategory">--</strong>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="p-2 border rounded bg-light">
+                <small class="text-muted d-block">SMS Reminders</small>
+                <strong id="modalSmsStatus">--</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs: Medications, Doses, Add Prescription, Schedule Refill -->
+          <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item">
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabMeds">Active Regimens</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabDoses">Dose Logs (Adherence)</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPrescribe">+ Prescribe Medication</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabRefill">+ Schedule Clinic Refill</button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <!-- Active Meds -->
+            <div class="tab-pane fade show active" id="tabMeds">
+              <div id="patientMedsList" class="list-group"></div>
+            </div>
+
+            <!-- Dose Logs -->
+            <div class="tab-pane fade" id="tabDoses">
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Time</th>
+                      <th>Medication</th>
+                      <th>Status</th>
+                      <th>Source</th>
+                    </tr>
+                  </thead>
+                  <tbody id="patientDoseLogsBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Prescribe -->
+            <div class="tab-pane fade" id="tabPrescribe">
+              <form id="prescribeForm" onsubmit="handlePrescribe(event)">
+                <input type="hidden" id="prescribePatientId">
+                <div class="row g-2 mb-2">
+                  <div class="col-md-8">
+                    <label class="form-label small">Medication Name</label>
+                    <input type="text" id="rxName" class="form-control form-control-sm" placeholder="e.g. Tenofovir/Lamivudine/Dolutegravir (TLD)" required>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small">Dosage</label>
+                    <input type="text" id="rxDose" class="form-control form-control-sm" placeholder="e.g. 1 tablet daily" required>
+                  </div>
+                </div>
+                <div class="row g-2 mb-2">
+                  <div class="col-md-6">
+                    <label class="form-label small">Daily Time (24h HH:mm)</label>
+                    <input type="text" id="rxTimes" class="form-control form-control-sm" value="08:00" placeholder="08:00, 20:00" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small">Pills Dispensed</label>
+                    <input type="number" id="rxPills" class="form-control form-control-sm" value="30" required>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small">Instructions</label>
+                  <textarea id="rxInstructions" class="form-control form-control-sm" rows="2" placeholder="Take after meal with clean water."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle me-1"></i> Add Prescription to Patient</button>
+              </form>
+            </div>
+
+            <!-- Refill Appointment -->
+            <div class="tab-pane fade" id="tabRefill">
+              <form id="refillForm" onsubmit="handleScheduleRefill(event)">
+                <input type="hidden" id="refillPatientId">
+                <div class="mb-2">
+                  <label class="form-label small">Next Refill / Review Date</label>
+                  <input type="date" id="refillDate" class="form-control form-control-sm" required>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small">Department / Clinic</label>
+                  <input type="text" id="refillDept" class="form-control form-control-sm" value="Luweero Health Centre OPD Clinic" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small">Clinician Notes</label>
+                  <input type="text" id="refillNotes" class="form-control form-control-sm" placeholder="Routine ART / BP refill & viral load monitoring">
+                </div>
+                <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-calendar-check me-1"></i> Schedule Refill Date</button>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let token = localStorage.getItem('medremind_clinician_token') || '';
+    let patientsData = [];
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+    }
+
+    const authModal = new bootstrap.Modal(document.getElementById('authModal'));
+    const patientModal = new bootstrap.Modal(document.getElementById('patientModal'));
+
+    function toggleAuthModal() {
+      authModal.toggle();
+    }
+
+    async function handleClinicianLogin(e) {
+      e.preventDefault();
+      const phone = document.getElementById('loginPhone').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errBox = document.getElementById('authError');
+      errBox.classList.add('d-none');
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Login failed');
+
+        if (data.user.role !== 'clinician' && data.user.role !== 'admin') {
+          throw new Error('This account is registered as an outpatient. Clinician role is required.');
+        }
+
+        token = data.token;
+        localStorage.setItem('medremind_clinician_token', token);
+        localStorage.setItem('medremind_clinician_name', data.user.fullName);
+        authModal.hide();
+        updateAuthUI(data.user.fullName);
+        loadDashboard();
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.classList.remove('d-none');
+      }
+    }
+
+    function updateAuthUI(name) {
+      if (token) {
+        document.getElementById('loginPrompt').classList.add('d-none');
+        document.getElementById('clinicianInfo').classList.remove('d-none');
+        document.getElementById('clinicianName').textContent = name || localStorage.getItem('medremind_clinician_name') || 'Clinician';
+        document.getElementById('authBtn').innerHTML = '<i class="bi bi-box-arrow-right"></i> Sign Out';
+        document.getElementById('authBtn').onclick = signOut;
+      } else {
+        document.getElementById('loginPrompt').classList.remove('d-none');
+        document.getElementById('clinicianInfo').classList.add('d-none');
+        document.getElementById('authBtn').innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Clinician Sign In';
+        document.getElementById('authBtn').onclick = toggleAuthModal;
+      }
+    }
+
+    function signOut() {
+      token = '';
+      localStorage.removeItem('medremind_clinician_token');
+      localStorage.removeItem('medremind_clinician_name');
+      updateAuthUI();
+      document.getElementById('patientsTableBody').innerHTML = `
+        <tr><td colspan="8" class="text-center py-4 text-muted">Please sign in as a clinician to view patient records.</td></tr>`;
+    }
+
+    async function loadDashboard() {
+      if (!token) return;
+
+      try {
+        // Load statistics
+        const statsRes = await fetch('/api/clinician/stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          document.getElementById('statPatients').textContent = stats.totalPatients;
+          document.getElementById('statAdherence').textContent = stats.averageAdherence == null ? '—' : `${stats.averageAdherence}%`;
+          document.getElementById('statLowStock').textContent = stats.lowStockCount;
+          document.getElementById('statMeds').textContent = stats.activeMedications;
+        }
+
+        // Load patients
+        const pRes = await fetch('/api/clinician/patients', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!pRes.ok) throw new Error('Failed to load patient records');
+        const pData = await pRes.json();
+        patientsData = pData.patients;
+        renderPatients(patientsData);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderPatients(list) {
+      const tbody = document.getElementById('patientsTableBody');
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No outpatients enrolled in this category yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map(p => {
+        const adhBadge = p.adherenceRate === null
+          ? '<span class="badge bg-secondary">No data</span>'
+          : p.adherenceRate >= 80
+            ? `<span class="badge bg-success">${p.adherenceRate}% Adherent</span>`
+            : `<span class="badge bg-danger">${p.adherenceRate}% At Risk</span>`;
+
+        const stockBadge = p.minPillsLeft === null
+          ? '<span class="text-muted">None</span>'
+          : p.minPillsLeft <= 5
+            ? `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> ${p.minPillsLeft} pills left</span>`
+            : `<span class="badge bg-light text-dark">${p.minPillsLeft} in stock</span>`;
+
+        return `
+          <tr>
+            <td class="fw-semibold">${escapeHtml(p.fullName)}</td>
+            <td><span class="badge bg-light text-secondary border">${escapeHtml(p.clinicId || 'OPD-PENDING')}</span></td>
+            <td>${escapeHtml(p.phone)}</td>
+            <td><span class="badge bg-primary-subtle text-primary">${escapeHtml(p.diseaseCategory)}</span></td>
+            <td>${p.activeMeds} regimen(s)</td>
+            <td>${stockBadge}</td>
+            <td>${adhBadge}</td>
+            <td class="text-end">
+              <button class="btn btn-outline-primary btn-sm" onclick="openPatientModal(${Number(p.id)})">
+                <i class="bi bi-eye"></i> Clinical Chart
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterPatients() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const cat = document.getElementById('diseaseFilter').value;
+      const filtered = patientsData.filter(p => {
+        const matchesQ = p.fullName.toLowerCase().includes(q) ||
+                         p.phone.includes(q) ||
+                         (p.clinicId && p.clinicId.toLowerCase().includes(q));
+        const matchesCat = !cat || p.diseaseCategory === cat;
+        return matchesQ && matchesCat;
+      });
+      renderPatients(filtered);
+    }
+
+    async function openPatientModal(id) {
+      try {
+        const res = await fetch(`/api/clinician/patients/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Could not load patient chart');
+        const data = await res.json();
+        const p = data.patient;
+
+        document.getElementById('modalPatientName').textContent = p.full_name;
+        document.getElementById('modalPatientSub').textContent = `OPD No: ${p.clinic_id || 'N/A'} • Enrolled: ${new Date(p.created_at).toLocaleDateString()}`;
+        document.getElementById('modalPhone').textContent = p.phone;
+        document.getElementById('modalCategory').textContent = p.disease_category;
+        document.getElementById('modalSmsStatus').innerHTML = p.sms_consent
+          ? '<span class="text-success"><i class="bi bi-check-circle"></i> Active</span>'
+          : '<span class="text-muted">Opted out</span>';
+
+        document.getElementById('prescribePatientId').value = p.id;
+        document.getElementById('refillPatientId').value = p.id;
+
+        // Render medications
+        const medsList = document.getElementById('patientMedsList');
+        if (!data.medications.length) {
+          medsList.innerHTML = '<div class="text-muted p-3">No active regimens prescribed yet.</div>';
+        } else {
+          medsList.innerHTML = data.medications.map(m => `
+          <div class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>${escapeHtml(m.name)}</strong> <span class="text-muted">(${escapeHtml(m.dose)})</span>
+                <div class="small text-muted">Times: ${escapeHtml(m.times.join(', '))} • ${Number(m.pills)} pills remaining</div>
+              </div>
+              <span class="badge ${m.pills <= 5 ? 'bg-danger' : 'bg-primary'}">${m.pills} pills</span>
+            </div>
+          `).join('');
+        }
+
+        // Render dose logs
+        const dosesBody = document.getElementById('patientDoseLogsBody');
+        if (!data.recentDoses.length) {
+          dosesBody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">No doses recorded yet.</td></tr>';
+        } else {
+          dosesBody.innerHTML = data.recentDoses.map(d => `
+            <tr>
+              <td>${escapeHtml(String(d.date).substring(0, 10))}</td>
+              <td>${escapeHtml(d.scheduled_time)}</td>
+              <td>${escapeHtml(d.medication_name)}</td>
+              <td><span class="badge ${d.status === 'taken' ? 'bg-success' : 'bg-danger'}">${d.status}</span></td>
+              <td><small class="text-muted">${escapeHtml(d.channel)}</small></td>
+            </tr>
+          `).join('');
+        }
+
+        patientModal.show();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function handlePrescribe(e) {
+      e.preventDefault();
+      const patientId = document.getElementById('prescribePatientId').value;
+      const name = document.getElementById('rxName').value.trim();
+      const dose = document.getElementById('rxDose').value.trim();
+      const times = document.getElementById('rxTimes').value.split(',').map(s => s.trim());
+      const pills = parseInt(document.getElementById('rxPills').value, 10) || 30;
+      const instructions = document.getElementById('rxInstructions').value.trim();
+
+      try {
+        const res = await fetch('/api/clinician/prescribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ patientId, name, dose, times, pills, instructions })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Prescription failed');
+        alert('Medication prescribed successfully!');
+        openPatientModal(patientId);
+        loadDashboard();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function handleScheduleRefill(e) {
+      e.preventDefault();
+      const patientId = document.getElementById('refillPatientId').value;
+      const appointmentDate = document.getElementById('refillDate').value;
+      const clinicDepartment = document.getElementById('refillDept').value;
+      const notes = document.getElementById('refillNotes').value;
+
+      try {
+        const res = await fetch('/api/appointments', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ appointmentDate, clinicDepartment, notes, patientId })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Scheduling failed');
+        alert('Refill appointment scheduled successfully!');
+        patientModal.hide();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // Auto-init on load if token present
+    if (token) {
+      updateAuthUI();
+      loadDashboard();
+    }
+  </script>
+</body>
+</html>
